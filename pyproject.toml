@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "shcedule-touban"
+version = "0.1.0"
+description = ""
+authors = ["chryshr <c.y0sh1hara.jp@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+polars = "^1.13.1"
+pulp = "^2.9.0"
+matplotlib = "^3.9.2"
+ipykernel = "^6.29.5"
+seaborn = "^0.13.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
