@@ -5,7 +5,8 @@ description = ""
 authors = ["chryshr <c.y0sh1hara.jp@gmail.com>"]
 
 [tool.poetry.packages]
-packages = [{include = "src"}]
+include = ["schedule_touban"]
+from = "src"
 
 [tool.poetry.dependencies]
 python = "^3.12"
