@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "shcedule-touban"
+name = "schedule-touban"
 version = "0.1.0"
 description = ""
 authors = ["chryshr <c.y0sh1hara.jp@gmail.com>"]
