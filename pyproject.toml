@@ -4,6 +4,9 @@ version = "0.1.0"
 description = ""
 authors = ["chryshr <c.y0sh1hara.jp@gmail.com>"]
 
+[tool.poetry.packages]
+packages = [{include = "src"}]
+
 [tool.poetry.dependencies]
 python = "^3.12"
 polars = "^1.13.1"
