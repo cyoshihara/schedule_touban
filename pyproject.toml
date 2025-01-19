@@ -4,10 +4,9 @@ version = "0.1.0"
 description = ""
 authors = ["chryshr <c.y0sh1hara.jp@gmail.com>"]
 
-[tool.poetry.packages]
-packages = [
-    {include = "schedule_touban", from = "src"}
-]
+[[tool.poetry.packages]]
+include = "schedule_touban"
+from = "src"
 
 [tool.poetry.dependencies]
 python = "^3.12"
