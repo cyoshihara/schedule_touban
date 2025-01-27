@@ -1,5 +1,4 @@
 streamlit == 1.41.1
-psycopg2 == 2.9.10
 firebase-admin
 python-dotenv == 1.0.1
 polars == 1.21.0
