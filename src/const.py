@@ -553,6 +553,7 @@ CHATGPT_PROMPT_TOUBAN = """テキストから表を作成してください。�
 ＜作成ルール＞
 ・カラムは以下
 year, month, day, youbi, time, m_cat, f_cat, place, touban1, touban2, note
+・yearは2024です。
 ・一つの日付に、複数の時間帯がありますが、それらは別レコードとして記載すること
 ・youbiは曜日を記載。日、月、火、水、木、金、土のいずれかを記載してください。ただし、祝日の場合は曜日を記載せず「祝」のみを記載してください。
 ・m_cat、f_catには、🚹や🚺の後のテキストを記載してください。
@@ -568,6 +569,7 @@ CHATGPT_PROMPT_PLAN = """表を出力してください。なお、出力する�
 ・カラムは以下			
 event_id,month,day,youbi,time,place,need_touban,m_cat,f_cat,m_und,m_mid,m_top,m_1,m_2,m_3,m_4,m_5,m_6,f_und,f_mid,f_top,f_1,f_2,f_3,f_4,f_5,f_6
 ＜ルール＞
+・yearは2025です。
 ・event_id は1はじまりの通し番号です
 ・placeには「🏫」の後のテキストを記載してください
 ・need_toubanはすべて1にしてください

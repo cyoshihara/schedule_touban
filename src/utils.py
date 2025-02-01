@@ -46,6 +46,7 @@ class GoogleDriveService:
         """コンストラクタ"""
         self.drive_service = build("drive", "v3", credentials=credentials)
         self.data_dir = data_dir
+        self.is_clear_data_dir_when_app_close = is_clear_data_dir_when_app_close
 
         if os.path.isdir(self.data_dir) is False:
             os.mkdir(self.data_dir)
@@ -57,7 +58,7 @@ class GoogleDriveService:
             if self.is_clear_data_dir_when_app_close and os.path.exists(self.data_dir):
                 shutil.rmtree(self.data_dir)
                 print(f"Cleaned up temporary directory: {self.data_dir}")
-            # ファイルの更新もしたい！！！
+            # GoogleDrive上のファイルの更新もしたい？？ → やりなおしたい場合もあるかもだから、やめた方がよさそう。
         except Exception as e:
             print(f"Error during cleanup: {e}")
 
