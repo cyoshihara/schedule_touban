@@ -30,6 +30,7 @@ IS_DEBUG = True
 # 📄 mst_day.csv (ID: 1PvoHPZVwVyZknBybzINyZOqacMTkb0LJ)
 
 def cleanup():
+    return # 最終的には消す
     try:
         shutil.rmtree(const.DIR_TEMP)
         print(f"Cleaned up temporary directory: {const.DIR_TEMP}")
@@ -47,7 +48,7 @@ def main():
 
     gcp_creds, google_genai_api_key = utils.get_secrets()
 
-    gds = utils.GoogleDriveService(gcp_creds, is_clear_data_dir_when_app_close=(not IS_DEBUG))
+    gds = utils.GoogleDriveService(gcp_creds)
 
     # ここから本処理
     fpath_trn_touban = os.path.join(const.DIR_TEMP, "trn_touban.csv")
