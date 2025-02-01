@@ -1,9 +1,11 @@
 import streamlit as st
+import atexit
 from googleapiclient.discovery import build
 import google.generativeai as genai
 import polars as pl
 import os
 from io import StringIO
+import shutil
 
 import const
 import utils
@@ -26,6 +28,14 @@ IS_DEBUG = True
 # 📄 _intermediate_parent_attr.csv (ID: 1dz4vyutekOoj1JNUHTL60M3ESrmhssCJ)
 # 📄 trn_touban_org_till_12.csv (ID: 16zOGSkGW7hOWLS7t8Arw8eJIoXLaSFuR)
 # 📄 mst_day.csv (ID: 1PvoHPZVwVyZknBybzINyZOqacMTkb0LJ)
+
+def cleanup():
+    try:
+        shutil.rmtree(const.DIR_TEMP)
+        print(f"Cleaned up temporary directory: {const.DIR_TEMP}")
+        # GoogleDrive上のファイルの更新もしたい？？ → やりなおしたい場合もあるかもだから、やめた方がよさそう。
+    except Exception as e:
+        print(f"Error during cleanup: {e}")
 
 def main():
     st.write("# お当番スケジューリングアプリ")
@@ -185,6 +195,7 @@ def test_gemini():
         print(df_input)
 
 if __name__ == "__main__":
+    atexit.register(cleanup)
     main()
 
     # test_gemini()

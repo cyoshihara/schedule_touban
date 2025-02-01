@@ -5,7 +5,6 @@ import streamlit as st
 
 import os
 import json
-import shutil
 from datetime import datetime
 
 import const
@@ -24,9 +23,9 @@ def get_current_fiscal_year():
 def get_secrets():
     """Secretsを取得"""
     try:
-        print("Streamlit Cloud で実行しています")
         gcp_creds               = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
         google_genai_creds_info = st.secrets["google_genai"]
+        print("Streamlit Cloud で実行しています")
     except:
         print("ローカル環境で実行しています")
         with open("./.local/credentials.json") as f:
@@ -42,38 +41,13 @@ def get_secrets():
 class GoogleDriveService:
     """GoogleDriveへの各種アクセス"""
 
-    def __init__(self, credentials, data_dir = const.DIR_TEMP, is_clear_data_dir_when_app_close=True):
+    def __init__(self, credentials, data_dir = const.DIR_TEMP):
         """コンストラクタ"""
         self.drive_service = build("drive", "v3", credentials=credentials)
         self.data_dir = data_dir
-        self.is_clear_data_dir_when_app_close = is_clear_data_dir_when_app_close
 
         if os.path.isdir(self.data_dir) is False:
             os.mkdir(self.data_dir)
-
-
-    def __del__(self):
-        """デストラクタ"""
-        try:
-            if self.is_clear_data_dir_when_app_close and os.path.exists(self.data_dir):
-                shutil.rmtree(self.data_dir)
-                print(f"Cleaned up temporary directory: {self.data_dir}")
-            # GoogleDrive上のファイルの更新もしたい？？ → やりなおしたい場合もあるかもだから、やめた方がよさそう。
-        except Exception as e:
-            print(f"Error during cleanup: {e}")
-
-
-    @property
-    def is_clear_data_dir_when_app_close(self) -> bool:
-        """アプリ終了時に一時ファイルを削除するかどうかのフラグ"""
-        return self._is_clear_data_dir_when_app_close
-
-
-    @is_clear_data_dir_when_app_close.setter
-    def is_clear_data_dir_when_app_close(self, value: bool) -> None:
-        if not isinstance(value, bool):
-            raise ValueError("is_clear_data_dir_when_app_close must be a boolean")
-        self._is_clear_data_dir_when_app_close = value
 
 
     def list_drive_files(self, pageSize=10):
