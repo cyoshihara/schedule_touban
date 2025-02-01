@@ -8,6 +8,7 @@ import utils
 
 
 def main():
+    st.write("# お当番スケジューリングアプリ")
     gcp_creds, google_genai_api_key = utils.get_secrets()
 
     # Google Drive API クライアントを作成
