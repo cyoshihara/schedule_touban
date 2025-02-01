@@ -2,3 +2,4 @@ streamlit == 1.41.1
 polars == 1.21.0
 google-auth
 google-api-python-client
+google-generativeai

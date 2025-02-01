@@ -1,4 +1,5 @@
 DIR_TEMP = "./tmp"
+GOOGLE_GENAI_MODEL_ID = "gemini-1.5-flash"
 
 
 """当月の当番のLINEノート"""
@@ -606,6 +607,9 @@ event_id,month,day,youbi,time,need_touban,m_cat,f_cat,m_und,m_mid,m_top,m_1,m_2,
     の場合は、以下のようにしてください。
     m_und=0,m_mid=0,m_top=0,m_1=0,m_2=1,m_3=1,m_4=1,m_5=0,m_6=0
     f_und=0,f_mid=1,f_top=1,f_1=0, f_2=0, f_3=0, f_4=0, f_5=0, f_6=0
+・表はcsv形式とし、セパレータは、"\t" とします。
+・polars.DataFrameで読み込むため、確実にカラムのずれがないようにしてください。
+・polars.DataFrameで読み込んだあと、絶対に空の行がないようにしてください。    
 ＜入力例＞
 💟 12月1日（日）
 🕐 13:00~15:30
