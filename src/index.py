@@ -9,7 +9,7 @@ try:
     creds = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
 except:
     print("ローカル環境で実行しています")
-    with open("schedule-touban-449606-d7f8e2568452.json") as f:
+    with open("credentials.json") as f:
         creds_info = json.load(f)
     creds = service_account.Credentials.from_service_account_info(creds_info)
 
