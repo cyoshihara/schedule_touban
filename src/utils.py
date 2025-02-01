@@ -11,7 +11,6 @@ def get_secrets():
     try:
         print("Streamlit Cloud で実行しています")
         gcp_creds               = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
-        google_genai_creds_info = service_account.Credentials.from_service_account_info(st.secrets["google_genai"])
     except:
         print("ローカル環境で実行しています")
         with open("./.local/credentials.json") as f:
@@ -20,6 +19,12 @@ def get_secrets():
         gcp_creds = service_account.Credentials.from_service_account_info(gcp_creds_info)
 
         google_genai_creds_info = creds_info["google_genai"]
+
+    try:
+        google_genai_creds_info = service_account.Credentials.from_service_account_info(st.secrets["google_genai"])
+    except:
+        st.write("なぜ")
+
     # google_genai_api_key = google_genai_creds_info["api_key"]
     google_genai_api_key = ""
     return gcp_creds, google_genai_api_key
