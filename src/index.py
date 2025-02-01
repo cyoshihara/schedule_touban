@@ -1,48 +1,33 @@
 import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, db
-import polars as pl
-import os
-from dotenv import load_dotenv
-import toml
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+import json
 
-# .envファイルから環境変数を読み込む
-load_dotenv()
-
-# 環境変数からサービスアカウント情報を取得
-service_account_info_str = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_TOML')
-if service_account_info_str is None:
-    raise ValueError("GOOGLE_APPLICATION_CREDENTIALS_TOML environment variable not set")
-
-# デバッグ用に環境変数の内容を表示
-# st.write(f"Environment variable content: {service_account_info_str}")
-
-# TOML形式の文字列を辞書に変換
-service_account_info = toml.loads(service_account_info_str)
-
-# Firebase Admin SDKの初期化
-cred = credentials.Certificate(service_account_info['google_application_credentials'])
-firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://schedule-touban-default-rtdb.asia-southeast1.firebasedatabase.app/'
-})
-
-# Realtime Databaseからデータを取得
+# ローカル or Streamlit Cloud の判定
 try:
-    ref = db.reference('test-node')
-    data = ref.get()
-    if data:
-        st.write("Data retrieved successfully")
+    print("Streamlit Cloud で実行しています")
+    creds = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+except:
+    print("ローカル環境で実行しています")
+    with open("schedule-touban-449606-d7f8e2568452.json") as f:
+        creds_info = json.load(f)
+    creds = service_account.Credentials.from_service_account_info(creds_info)
+
+# Google Drive API クライアントを作成
+drive_service = build("drive", "v3", credentials=creds)
+
+# Google Drive のファイル一覧を取得
+def list_drive_files():
+    results = drive_service.files().list(pageSize=10, fields="files(id, name)").execute()
+    files = results.get("files", [])
+    return files
+
+print("📂 Google Drive API テスト")
+
+if st.button("ファイル一覧を取得"):
+    files = list_drive_files()
+    if files:
+        for file in files:
+            st.write(f"📄 {file['name']} (ID: {file['id']})")
     else:
-        st.write("No data found")
-except Exception as e:
-    st.write(f"Error retrieving data: {e}")
-
-# データをリストに変換
-if data:
-    data_list = [value for key, value in data.items()]
-    # Polars DataFrameに変換
-    df = pl.DataFrame(data_list)
-    # データを表示
-    st.write(df)
-
-st.write("Hello, world!")
+        st.write("ファイルが見つかりませんでした")
