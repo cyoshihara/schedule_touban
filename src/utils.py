@@ -6,8 +6,19 @@ import streamlit as st
 import os
 import json
 import shutil
+from datetime import datetime
 
 import const
+
+
+def get_current_fiscal_year():
+    today = datetime.today()
+    # 4月1日より前の場合は前年を年度の開始年とする
+    if today.month < 4:
+        fiscal_year_start = today.year - 1
+    else:
+        fiscal_year_start = today.year
+    return fiscal_year_start
 
 
 def get_secrets():
@@ -64,10 +75,10 @@ class GoogleDriveService:
         self._is_clear_data_dir_when_app_close = value
 
 
-    def list_drive_files(self):
+    def list_drive_files(self, pageSize=10):
         """Google Drive のファイル一覧を取得"""
         results = self.drive_service.files().list(
-            pageSize=10,
+            pageSize=pageSize,
             fields="files(id, name)"
             ).execute()
         files = results.get("files", [])

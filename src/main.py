@@ -9,7 +9,7 @@ import const
 import utils
 
 
-IS_DEBUG = False
+IS_DEBUG = True
 
 # TODO
 # [] ウィザードもできる
@@ -85,7 +85,6 @@ def main():
             genai.configure(api_key=google_genai_api_key)
             model = genai.GenerativeModel(const.GOOGLE_GENAI_MODEL_ID)
             response = model.generate_content(f"{const.CHATGPT_PROMPT_TOUBAN + linetext_touban}")
-            response.text
             if response.text != "":
             # 結果をcsvに変換
                csv_data = StringIO(response.text.replace("```csv", "").replace("```", ""))
@@ -136,6 +135,39 @@ def main():
             df_input = st.session_state.df_input
             df_input = st.data_editor(df_input, num_rows="dynamic", height=const.HEIGHT_CHECK)
 
+    # ---------------------------------------------
+    st.write('### 作業3: お当番の日程を自動作成')
+    # ---------------------------------------------
+    cutoff_threshold = st.number_input('累積当番回数がこの値以下の家庭のみ対象', 8)
+    if st.button('最適化実行'):
+        st.write('最適化実行中...')
+
+        import optimize
+        lp_status,df_output, dict_parent_count = optimize.optimize(
+            const.DIR_TEMP,
+            df_input,
+            df_trn_touban,
+            cutoff_threshold,
+            gds
+        )
+        if lp_status != "Optimal":
+            st.error('最適化に失敗しました')
+        else:
+            st.success('成功')
+            st.data_editor(df_output, num_rows="dynamic")
+            st.write("↑↑↑↑↑↑↑ねんのため、カテゴリを確認↑↑↑↑↑↑↑")
+
+            # ---------------------------------------------
+            st.write("累積当番回数の確認")
+            st.write(dict_parent_count)
+        
+            st.write("TODO: 初心者でも対象外の人も出力したい")
+            st.write("TODO: 各家庭の希望曜日などを外だしして表示したい")
+            st.write("TODO: LINEやめてほしい")
+            st.write("TODO: inputとoutputに場所とイベント列を追加したい")
+            st.write("TODO: 全カテのみ希望への対応")
+            st.write("TODO: 役員必須日の対応 (ふれはすの日は、一方を役員にする)")
+            st.write("TODO: 最適化プログレスバーを表示したい")
 
 def test_gemini():
     gcp_creds, google_genai_api_key = utils.get_secrets()
@@ -156,3 +188,7 @@ if __name__ == "__main__":
     main()
 
     # test_gemini()
+    # gcp_creds, google_genai_api_key = utils.get_secrets()
+
+    # gds = utils.GoogleDriveService(gcp_creds, is_clear_data_dir_when_app_close=(not IS_DEBUG))
+    # print(gds.list_drive_files(100))
