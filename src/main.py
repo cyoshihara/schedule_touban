@@ -8,26 +8,12 @@ from io import StringIO
 import shutil
 
 import const
+from const import FileID
 import utils
 
 
 IS_DEBUG = True
 
-# TODO
-# [] ウィザードもできる
-# https://blog.streamlit.io/streamlit-wizard-form-with-custom-animated-spinner/
-# [] tmpのファイルを消す
-
-# 📄 schedule-touban-data (ID: 1eIyBtoj9xbwyWU4Ej477ZBxpccv55eY-)
-# 📄 trn_touban.csv (ID: 1LnQKVcN7-o_WMtLUn_0c6OqKCunstbAa)
-# 📄 for_test_trn_touban.csv (ID: 13LK7YU7mmvURWxf4cvv3Et9XaaZU6lpu)
-# 📄 trn_touban_新しいフォーマットで作成中.csv (ID: 1my7qe1HYiSBPXahuxxFTCagVKyDaQ2_k)
-# 📄 output.csv (ID: 1Q9x6sywZdXwH4_3xHf_Jv9_sdkaemwKz)
-# 📄 input.csv (ID: 1PyryHjH5Qi6fwkDrIejDUtW68Oc3V28R)
-# 📄 mst_parent.csv (ID: 1UzI8WWfLes5PIP9999bQUpQfsQjojZSx)
-# 📄 _intermediate_parent_attr.csv (ID: 1dz4vyutekOoj1JNUHTL60M3ESrmhssCJ)
-# 📄 trn_touban_org_till_12.csv (ID: 16zOGSkGW7hOWLS7t8Arw8eJIoXLaSFuR)
-# 📄 mst_day.csv (ID: 1PvoHPZVwVyZknBybzINyZOqacMTkb0LJ)
 
 def cleanup():
     return # 最終的には消す
@@ -59,9 +45,9 @@ def main():
     # ---------------------------------------------
     with st.spinner('データダウンロード中...'):
         if os.path.isfile(fpath_trn_touban) is False:
-            fpath_trn_touban = gds.download_file("1LnQKVcN7-o_WMtLUn_0c6OqKCunstbAa")
+            fpath_trn_touban = gds.download_file(FileID.trn_touban)
         if os.path.isfile(fpath_mst_parent) is False:
-            fpath_mst_parent = gds.download_file("1UzI8WWfLes5PIP9999bQUpQfsQjojZSx")
+            fpath_mst_parent = gds.download_file(FileID.mst_parent)
 
     with st.spinner('当番履歴読み込み中...'):
         df_trn_touban = pl.read_csv(fpath_trn_touban)
@@ -166,41 +152,12 @@ def main():
         else:
             st.success('成功')
             st.data_editor(df_output, num_rows="dynamic")
-            st.write("↑↑↑↑↑↑↑ねんのため、カテゴリを確認↑↑↑↑↑↑↑")
-
+            st.write("↑↑↑↑↑↑↑念のため、カテゴリを確認してください↑↑↑↑↑↑↑")
             # ---------------------------------------------
-            st.write("累積当番回数の確認")
+            st.write("今年度のお当番回数 ※偏りがないか確認してください")
             st.write(dict_parent_count)
-        
-            st.write("TODO: 初心者でも対象外の人も出力したい")
-            st.write("TODO: 各家庭の希望曜日などを外だしして表示したい")
-            st.write("TODO: LINEやめてほしい")
-            st.write("TODO: inputとoutputに場所とイベント列を追加したい")
-            st.write("TODO: 全カテのみ希望への対応")
-            st.write("TODO: 役員必須日の対応 (ふれはすの日は、一方を役員にする)")
-            st.write("TODO: 最適化プログレスバーを表示したい")
 
-def test_gemini():
-    gcp_creds, google_genai_api_key = utils.get_secrets()
-
-    genai.configure(api_key=google_genai_api_key)
-    model = genai.GenerativeModel(const.GOOGLE_GENAI_MODEL_ID)
-    response = model.generate_content(f"{const.CHATGPT_PROMPT_PLAN + const.DEBUG_SAMPLE_LINETEXT_PLAN}")
-    print(response.text)
-    if response.text != "":
-    # 結果をcsvに変換
-        csv_data = StringIO(response.text.replace("```csv", "").replace("```", ""))
-    
-    # DataFrameに起こして表示
-        df_input = pl.read_csv(csv_data, separator="\t", truncate_ragged_lines=True)
-        print(df_input)
 
 if __name__ == "__main__":
     atexit.register(cleanup)
     main()
-
-    # test_gemini()
-    # gcp_creds, google_genai_api_key = utils.get_secrets()
-
-    # gds = utils.GoogleDriveService(gcp_creds, is_clear_data_dir_when_app_close=(not IS_DEBUG))
-    # print(gds.list_drive_files(100))

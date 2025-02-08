@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+
 DIR_TEMP = "./tmp"
 GOOGLE_GENAI_MODEL_ID = "gemini-1.5-flash"
 
@@ -677,3 +680,8 @@ event_id	year	month	day	youbi	time	place	need_touban	m_cat	f_cat	m_und	m_mid	m_t
 
 
 HEIGHT_CHECK = 600
+
+@dataclass(frozen=True)
+class FileID:
+  trn_touban = "1LnQKVcN7-o_WMtLUn_0c6OqKCunstbAa"
+  mst_parent = "1UzI8WWfLes5PIP9999bQUpQfsQjojZSx"
