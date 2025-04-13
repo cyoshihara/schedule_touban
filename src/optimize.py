@@ -5,6 +5,7 @@ import os
 
 from utils import get_current_fiscal_year
 import utils
+import const
 
 def optimize(dir, df_input, df_trn_touban, cutoff_threshold, gds:utils.GoogleDriveService):
   fpath_mst_day = os.path.join(dir, "mst_day.csv")
@@ -13,20 +14,18 @@ def optimize(dir, df_input, df_trn_touban, cutoff_threshold, gds:utils.GoogleDri
   fpath_mst_grade_category = os.path.join(dir, "mst_grade_category.csv")
 
   if os.path.isfile(fpath_mst_day) is False:
-      fpath_mst_day = gds.download_file("1PvoHPZVwVyZknBybzINyZOqacMTkb0LJ")
+      fpath_mst_day = gds.download_file(const.FileID.mst_day)
   if os.path.isfile(fpath_mst_member) is False:
-      fpath_mst_member = gds.download_file("1f-LVdTlF45KuI0xe7QWeJ2QvK5uoqp99")
+      fpath_mst_member = gds.download_file(const.FileID.mst_member)
   if os.path.isfile(fpath_mst_parent) is False:
-      df_mst_parent = gds.download_file("1UzI8WWfLes5PIP9999bQUpQfsQjojZSx")
+      df_mst_parent = gds.download_file(const.FileID.mst_parent)
   if os.path.isfile(fpath_mst_grade_category) is False:
-      df_mst_grade_category = gds.download_file("10dkH1sENuZ9ZfG68PipOOFcC8YwWFXtS")
+      df_mst_grade_category = gds.download_file(const.FileID.mst_grade_category)
 
   df_mst_day = pl.read_csv(fpath_mst_day)
   df_mst_member = pl.read_csv(fpath_mst_member)
   df_mst_parent = pl.read_csv(fpath_mst_parent, try_parse_dates=True)
   df_mst_grade_category = pl.read_csv(fpath_mst_grade_category)
-  # df_trn_touban = pl.read_csv(f"{dir}/trn_touban.csv")
-  # df_input = pl.read_csv("../data/input.csv")
 
   # --------------------------------------------------
   # 入力の整形
@@ -300,7 +299,7 @@ def optimize(dir, df_input, df_trn_touban, cutoff_threshold, gds:utils.GoogleDri
   # 9. 今月に入る回数は1回まで
   for parent in parents:
     prob.addConstraint(
-      x_count_by_parents_this_month[parent] <= 1
+      x_count_by_parents_this_month[parent] <= 2
     )
 
   # 1. 各日の当番の人数は2名 (あとで人数を指定できるようにする)

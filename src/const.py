@@ -5,7 +5,15 @@ DIR_TEMP = "./tmp"
 GOOGLE_GENAI_MODEL_ID = "gemini-1.5-flash"
 
 
-"""当月の当番のLINEノート"""
+@dataclass(frozen=True)
+class FileID:
+  trn_touban = "1LnQKVcN7-o_WMtLUn_0c6OqKCunstbAa"
+  mst_parent = "1FGI0ZA847KlnyDLqtgshaQWxvIvmpCv5"
+  mst_member = "1PX_Zq25jaA6FV2X0dlRLofyU6gpFFQRq"
+  mst_day = "1PvoHPZVwVyZknBybzINyZOqacMTkb0LJ"
+  mst_grade_category = "10dkH1sENuZ9ZfG68PipOOFcC8YwWFXtS"
+
+
 DEBUG_SAMPLE_LINETEXT_TOUBAN = """🎄12月お当番表🎄
 
 ⚠️女子のミドルカテゴリーのみ、アンダーへの練習も参加可
@@ -329,7 +337,6 @@ DEBUG_SAMPLE_LINETEXT_TOUBAN = """🎄12月お当番表🎄
 🔚
    """
 
-"""当月の当番のLINEノートからChatGPTが作成したテーブル"""
 DEBUG_SAMPLE_CHATGPT_RESULT_TOUBAN = """
 年	月	日	曜日	時間	カテゴリー🚹	カテゴリー🚺	場所	当番1	当番2
 2024	12	1	日	13:00~15:30	トップ+5年生以上	ミドルトップ	新宿小学校	片山	國井
@@ -678,10 +685,3 @@ event_id	year	month	day	youbi	time	place	need_touban	m_cat	f_cat	m_und	m_mid	m_t
 元データは以下です。よろしくお願いします。
 """
 
-
-HEIGHT_CHECK = 600
-
-@dataclass(frozen=True)
-class FileID:
-  trn_touban = "1LnQKVcN7-o_WMtLUn_0c6OqKCunstbAa"
-  mst_parent = "1UzI8WWfLes5PIP9999bQUpQfsQjojZSx"
