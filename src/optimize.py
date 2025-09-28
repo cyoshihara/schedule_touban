@@ -7,6 +7,7 @@ from utils import get_current_fiscal_year
 import utils
 import const
 
+
 def optimize(dir, df_input, df_trn_touban, cutoff_threshold, gds:utils.GoogleDriveService):
   fpath_mst_day = os.path.join(dir, "mst_day.csv")
   fpath_mst_member = os.path.join(dir, "mst_member.csv")
@@ -96,7 +97,7 @@ def optimize(dir, df_input, df_trn_touban, cutoff_threshold, gds:utils.GoogleDri
   df_input = df_input.with_columns( pl.col("day_id").alias("youbi") )
 
   # 入会間もない人は除く (TODO: 3か月以内→後でパラメータ外だし)
-  ninety_days_duration = pl.duration(days=90)
+  ninety_days_duration = pl.duration(days=30)
   first_row = df_input[0]
   next_month = pl.date(first_row["year"], first_row["month"], first_row["day"])
   print("以下の人たちを除外")
@@ -163,7 +164,7 @@ def optimize(dir, df_input, df_trn_touban, cutoff_threshold, gds:utils.GoogleDri
   # df_touban_count = df_trn_touban.select(["parent_id"]).group_by(["parent_id"], maintain_order=True).count().sort(by=pl.col("parent_id"))
   def get_touban_count(df_trn_touban, df_mst_parent):
     df_melt = df_trn_touban.melt(
-      id_vars=["year", "month",	"day",	"youbi",	"time",	"m_cat",	"f_cat",	"place",	"note"],
+      id_vars=["year", "month",	"day",	"youbi",	"time",	"m_cat",	"f_cat",	"place",],
       value_vars=["touban1", "touban2"],
       variable_name="touban_index",
       value_name="touban"
@@ -299,7 +300,7 @@ def optimize(dir, df_input, df_trn_touban, cutoff_threshold, gds:utils.GoogleDri
   # 9. 今月に入る回数は1回まで
   for parent in parents:
     prob.addConstraint(
-      x_count_by_parents_this_month[parent] <= 2
+      x_count_by_parents_this_month[parent] <= const.ConstraintParam.touban_count_upper
     )
 
   # 1. 各日の当番の人数は2名 (あとで人数を指定できるようにする)

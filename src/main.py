@@ -16,12 +16,14 @@ IS_DEBUG = True
 
 
 def cleanup():
+    return # 後で消す
     try:
         shutil.rmtree(const.DIR_TEMP)
         print(f"Cleaned up temporary directory: {const.DIR_TEMP}")
         # GoogleDrive上のファイルの更新もしたい？？ → やりなおしたい場合もあるかもだから、やめた方がよさそう。
     except Exception as e:
         print(f"Error during cleanup: {e}")
+
 
 def main():
     st.write("# お当番スケジューリングアプリ")
@@ -30,9 +32,7 @@ def main():
     if 'line_text_plan' not in st.session_state:
         st.session_state.line_text_plan = const.DEBUG_SAMPLE_LINETEXT_PLAN if IS_DEBUG else "ここに翌月の練習日程のLINEメッセージをペースト"
 
-
     gcp_creds, google_genai_api_key = utils.get_secrets()
-
     gds = utils.GoogleDriveService(gcp_creds)
 
     # ここから本処理
@@ -65,7 +65,7 @@ def main():
     # ---------------------------------------------
     st.write('### 作業2: お当番の日程を自動作成')
     # ---------------------------------------------
-    cutoff_threshold = st.number_input('累積当番回数がこの値以下の家庭のみ対象', 8)
+    cutoff_threshold = st.number_input('累積当番回数がこの値以下の家庭のみ対象', value=8)
     if st.button('最適化実行'):
         st.write('最適化実行中...')
 

@@ -13,6 +13,9 @@ class FileID:
   mst_day = "1PvoHPZVwVyZknBybzINyZOqacMTkb0LJ"
   mst_grade_category = "10dkH1sENuZ9ZfG68PipOOFcC8YwWFXtS"
 
+@dataclass(frozen=True)
+class ConstraintParam:
+  touban_count_upper = 5
 
 DEBUG_SAMPLE_LINETEXT_TOUBAN = """🎄12月お当番表🎄
 
