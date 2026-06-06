@@ -20,10 +20,14 @@ import streamlit as st
 import stats_const as sc
 import stats_logic as logic
 import stats_models as models
+import stats_sync as sync
 
 
 # 永続化先（既存 const.DIR_TEMP と同じ ./tmp 配下）
 DATA_DIR = sc.DIR_TEMP
+
+# 未同期がこの件数たまったら push（設計7章）。
+_PUSH_PENDING_THRESHOLD = 10
 
 
 # ---------------------------------------------------------------------------
@@ -40,6 +44,92 @@ def _init_state() -> None:
   for key, value in defaults.items():
     if key not in st.session_state:
       st.session_state[key] = value
+
+
+# ---------------------------------------------------------------------------
+# Drive 同期フック（TD4）
+#
+# Drive 無効環境（LocalOnlyBackend）では _mark_dirty/_push_dirty は no-op となり、
+# 既存 UI・挙動は一切変わらない。
+# ---------------------------------------------------------------------------
+def _get_backend():
+  """session_state に保持した StorageBackend を返す。"""
+  return st.session_state.get("_backend")
+
+
+def _mark_dirty(*files: str) -> None:
+  """書込後に呼び、変更があった CSV を未同期(dirty)として記録する。"""
+  backend = _get_backend()
+  if backend is None or not backend.enabled:
+    return
+  dirty = st.session_state.setdefault("_dirty", set())
+  if files:
+    dirty.update(files)
+  else:
+    dirty.update(sync.SYNC_FILES)
+  st.session_state["_dirty"] = dirty
+
+
+def _push_dirty(force: bool = False) -> None:
+  """dirty な CSV を push する（節目イベント or しきい値到達時）。
+
+  変更があった CSV だけを push し、成功したら dirty をクリアする。
+  push は内部で例外を捕捉するため、ここで例外は発生しない。
+  """
+  backend = _get_backend()
+  if backend is None or not backend.enabled:
+    return
+  dirty = st.session_state.get("_dirty", set())
+  if not dirty and not force:
+    return
+
+  files = list(dirty) if dirty else list(sync.SYNC_FILES)
+  result = backend.push(files)
+  if result.ok:
+    st.session_state["_dirty"] = set()
+  st.session_state["_sync_status"] = backend.status
+
+
+def _maybe_push_on_event() -> None:
+  """イベント追記後の間引き push（未同期がしきい値を超えたら push）。"""
+  backend = _get_backend()
+  if backend is None or not backend.enabled:
+    return
+  pending = st.session_state.get("_pending_count", 0) + 1
+  st.session_state["_pending_count"] = pending
+  if pending >= _PUSH_PENDING_THRESHOLD:
+    _push_dirty()
+    st.session_state["_pending_count"] = 0
+
+
+def _sync_status_text() -> str:
+  """同期ステータスの表示文字列を返す。"""
+  backend = _get_backend()
+  if backend is None or not backend.enabled:
+    return "ローカルのみ"
+  status = st.session_state.get("_sync_status", backend.status)
+  dirty = st.session_state.get("_dirty", set())
+  if status == sync.SyncStatus.AUTH_ERROR:
+    return "同期エラー（共有/認証を確認）"
+  if status == sync.SyncStatus.OFFLINE:
+    return "オフライン（未同期あり）"
+  if dirty:
+    return f"未同期{len(dirty)}件"
+  return "同期OK"
+
+
+def _render_sync_bar() -> None:
+  """常時表示の同期ステータス＋「クラウドに保存」ボタン。"""
+  backend = _get_backend()
+  col_status, col_btn = st.columns([3, 1])
+  with col_status:
+    st.caption(f"ストレージ: {_sync_status_text()}")
+  with col_btn:
+    if backend is not None and backend.enabled:
+      if st.button("クラウドに保存", use_container_width=True):
+        _push_dirty(force=True)
+        st.session_state["_pending_count"] = 0
+        st.rerun()
 
 
 def _goto(page: str, game_id: int | None = None) -> None:
@@ -245,6 +335,9 @@ def page_create() -> None:
       data_dir=DATA_DIR,
     )
     models.register_players(game_id, players, data_dir=DATA_DIR)
+    # 試合作成・選手登録確定は節目イベント。game/game_player を dirty マークし push。
+    _mark_dirty(sc.CsvFile.game, sc.CsvFile.game_player)
+    _push_dirty()
     st.success(f"試合 #{game_id} を作成しました。記録画面へ移動します。")
     _goto("record", game_id=game_id)
     st.rerun()
@@ -264,6 +357,9 @@ def _record_event(event_type: str, **kwargs) -> None:
     data_dir=DATA_DIR,
     **kwargs,
   )
+  # 頻繁に変わるのは event のみ（設計7章）。dirty マーク＋間引き push。
+  _mark_dirty(sc.CsvFile.event)
+  _maybe_push_on_event()
   st.rerun()
 
 
@@ -419,6 +515,8 @@ def _undo_and_quarter(game: dict, events: pl.DataFrame, players: pl.DataFrame) -
         f"↩ 取り消す（直前: {last_label} / {who}）", use_container_width=True
       ):
         models.delete_last_event(st.session_state.game_id, data_dir=DATA_DIR)
+        # undo も event を変更する。dirty マーク（push は節目で実施）。
+        _mark_dirty(sc.CsvFile.event)
         st.rerun()
     else:
       st.button("↩ 取り消す（履歴なし）", disabled=True, use_container_width=True)
@@ -433,6 +531,9 @@ def _undo_and_quarter(game: dict, events: pl.DataFrame, players: pl.DataFrame) -
       use_container_width=True,
     ):
       st.session_state.current_quarter = min(cur + 1, max_q)
+      # 「次のQへ」は節目イベント。未同期の event を push する。
+      _push_dirty()
+      st.session_state["_pending_count"] = 0
       st.rerun()
 
 
@@ -539,6 +640,10 @@ def page_boxscore() -> None:
       st.rerun()
     return
 
+  # ボックススコア画面遷移は節目イベント。未同期があれば push（設計7章）。
+  _push_dirty()
+  st.session_state["_pending_count"] = 0
+
   st.write("## ボックススコア")
   col_back, col_rec = st.columns(2)
   with col_back:
@@ -578,12 +683,40 @@ def page_boxscore() -> None:
 # ---------------------------------------------------------------------------
 # エントリ
 # ---------------------------------------------------------------------------
+def _init_backend_and_pull() -> None:
+  """ストレージバックエンドを構築し、セッション初回のみ pull する（設計3.3）。
+
+  - build_backend は設定なし/初期化失敗時に LocalOnlyBackend を返すため、
+    Drive 無効環境では pull/push が no-op となり既存挙動は一切変わらない。
+  - 起動時プルは初回限定（毎回プルするとローカル最新を Drive 旧版で
+    上書きするリスクがあるため）。pull → init_storage の順。
+  """
+  backend = st.session_state.get("_backend")
+  if backend is None:
+    backend = sync.build_backend(DATA_DIR)
+    st.session_state["_backend"] = backend
+    st.session_state["_sync_status"] = backend.status
+
+  if not st.session_state.get("_synced", False):
+    if backend.enabled:
+      result = backend.pull()
+      st.session_state["_sync_status"] = backend.status
+      if result.status in (sync.SyncStatus.OFFLINE, sync.SyncStatus.AUTH_ERROR):
+        st.warning("クラウドからの読み込みに失敗しました。ローカルのデータで続行します。")
+    # pull 後（または無効時）にローカル CSV を初期化する。
+    models.init_storage(DATA_DIR)
+    st.session_state["_synced"] = True
+  else:
+    models.init_storage(DATA_DIR)
+
+
 def main() -> None:
   st.set_page_config(page_title="バスケ スコア＆スタッツ", layout="wide")
-  models.init_storage(DATA_DIR)
   _init_state()
+  _init_backend_and_pull()
 
   st.write("# 🏀 バスケ スコア＆スタッツ記録")
+  _render_sync_bar()
 
   page = st.session_state.page
   if page == "home":

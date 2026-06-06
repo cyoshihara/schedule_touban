@@ -1,6 +1,6 @@
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 import streamlit as st
 
 import os
@@ -86,3 +86,98 @@ class GoogleDriveService:
                 print(f"Download {progress}%.")
                 # yield progress, done
         return file_path
+
+
+    # -----------------------------------------------------------------------
+    # アップロード/検索 API（バスケ スタッツ Drive 同期用に追加・既存メソッド不変）
+    # -----------------------------------------------------------------------
+    def find_file_in_folder(self, folder_id, file_name, supportsAllDrives=False):
+        """指定フォルダ内の同名ファイルを検索し file_id を返す（無ければ None）。"""
+        # name にシングルクォートが含まれてもクエリが壊れないようエスケープ。
+        safe_name = file_name.replace("'", "\\'")
+        query = (
+            f"'{folder_id}' in parents and name='{safe_name}' and trashed=false"
+        )
+        kwargs = {
+            "q": query,
+            "fields": "files(id, name)",
+            "pageSize": 10,
+        }
+        if supportsAllDrives:
+            kwargs["supportsAllDrives"] = True
+            kwargs["includeItemsFromAllDrives"] = True
+        results = self.drive_service.files().list(**kwargs).execute()
+        files = results.get("files", [])
+        if not files:
+            return None
+        return files[0].get("id")
+
+
+    def upload_new_file(
+        self, folder_id, local_path, file_name=None, supportsAllDrives=False
+    ):
+        """ローカルファイルを新規作成（create）し、生成された file_id を返す。"""
+        if file_name is None:
+            file_name = os.path.basename(local_path)
+        body = {"name": file_name, "parents": [folder_id]}
+        media = MediaFileUpload(local_path, resumable=False)
+        kwargs = {"body": body, "media_body": media, "fields": "id"}
+        if supportsAllDrives:
+            kwargs["supportsAllDrives"] = True
+        created = self.drive_service.files().create(**kwargs).execute()
+        return created.get("id")
+
+
+    def update_file(self, file_id, local_path, supportsAllDrives=False):
+        """既存ファイルの内容を更新（update）し、file_id を返す。"""
+        media = MediaFileUpload(local_path, resumable=False)
+        kwargs = {"fileId": file_id, "media_body": media, "fields": "id"}
+        if supportsAllDrives:
+            kwargs["supportsAllDrives"] = True
+        updated = self.drive_service.files().update(**kwargs).execute()
+        return updated.get("id")
+
+
+    def upsert_file(
+        self, folder_id, local_path, file_name=None, supportsAllDrives=False
+    ):
+        """同名ファイルがあれば update、無ければ create する。file_id を返す。"""
+        if file_name is None:
+            file_name = os.path.basename(local_path)
+        file_id = self.find_file_in_folder(
+            folder_id, file_name, supportsAllDrives=supportsAllDrives
+        )
+        if file_id is None:
+            return self.upload_new_file(
+                folder_id, local_path, file_name=file_name,
+                supportsAllDrives=supportsAllDrives,
+            )
+        return self.update_file(
+            file_id, local_path, supportsAllDrives=supportsAllDrives
+        )
+
+
+    def download_file_to(
+        self, folder_id, file_name, dest_path, supportsAllDrives=False
+    ):
+        """フォルダ内の指定名ファイルを dest_path へ取得する。
+
+        フォルダ内に該当ファイルが無ければ何もせず None を返す。
+        取得した場合は dest_path を返す。
+        """
+        file_id = self.find_file_in_folder(
+            folder_id, file_name, supportsAllDrives=supportsAllDrives
+        )
+        if file_id is None:
+            return None
+
+        request = self.drive_service.files().get_media(fileId=file_id)
+        dest_dir = os.path.dirname(dest_path)
+        if dest_dir and not os.path.isdir(dest_dir):
+            os.makedirs(dest_dir, exist_ok=True)
+        with open(dest_path, "wb") as f:
+            downloader = MediaIoBaseDownload(f, request)
+            done = False
+            while done is False:
+                _status, done = downloader.next_chunk()
+        return dest_path
